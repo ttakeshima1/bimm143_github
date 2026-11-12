@@ -1,0 +1,247 @@
+---
+title: "Class 13: RNASeq Mini-Project"
+author: "Tyler Takeshima TSN: 200166223"
+format: pdf
+---
+
+## Background
+
+The data for our hands-on session comes from GEO entry: GSE37704, which is associated with the following publication:
+
+> Trapnell C, Hendrickson DG, Sauvageau M, Goff L et al. "Differential analysis of gene regulation at transcript resolution with RNA-seq". Nat Biotechnol 2013 Jan;31(1):46-53. PMID: 23222703
+
+The authors report on differential analysis of lung fibroblasts in response to loss of the developmental transcription factor HOXA1. Their results and others indicate that HOXA1 is required for lung fibroblast and HeLa cell cycle progression. In particular their analysis show that "loss of HOXA1 results in significant expression level changes in thousands of individual transcripts, along with isoform switching events in key regulators of the cell cycle". For our session we have used their Sailfish gene-level estimated counts and hence are restricted to protein-coding genes only.
+
+## Data Import
+
+```{r}
+library(DESeq2)
+
+metaFile <- "GSE37704_metadata.csv"
+countFile <- "GSE37704_featurecounts.csv"
+
+# Import metadata and take a peek
+colData = read.csv(metaFile, row.names = 1)
+head(colData)
+
+#Import countdata
+countData = read.csv(countFile, row.names = 1)
+head(countData)
+```
+
+## Setting up for DESeq
+
+> Q. Complete the code below to remove the troublesome first column from countData
+
+```{r}
+#Note we need to remove the odd first $length col
+countData <- as.matrix(countData[, -1])
+head(countData)
+```
+
+> Q. Complete the code below to filter countData to exclude genes (i.e. rows) where we have 0 read count across all samples (i.e. columns).
+
+```{r}
+countData = countData[rowSums(countData) > 0, ]
+```
+
+## Run DESeq
+
+```{r}
+dds = DESeqDataSetFromMatrix(countData = countData, colData = colData, design = ~condition)
+
+dds = DESeq(dds)
+
+res = results(dds)
+head(res)
+```
+
+> Q. Call the summary() function on your results to get a sense of how many genes are up or down-regulated at the default 0.1 p-value cutoff.
+
+```{r}
+summary(res)
+```
+
+## Make a Results Figure
+
+```{r}
+library (ggplot2)
+
+ggplot(res) +
+  aes(x = log2FoldChange,
+      y = -log(padj)) +
+  geom_point()
+```
+
+```{r}
+# Make a color vector for all genes
+mycols <- rep("gray", nrow(res) )
+
+# Color blue the genes with fold change above 2
+mycols[ abs(res$log2FoldChange) > 2 ] <- "blue"
+
+# Color gray those with adjusted p-value more than 0.01
+mycols[ res$padj > 0.01 ] <- "gray"
+
+ggplot(res) +
+  aes(log2FoldChange,
+      -log(padj)) +
+  geom_point(col = mycols) +
+  xlab("Log2(FoldChange)") +
+  ylab("-Log(P-value)") +
+  geom_vline(xintercept = c(-2,2)) +
+  geom_hline(yintercept = -log(0.01))
+```
+
+## Add Annotation Data
+
+> Q. Use the mapIDs() function multiple times to add SYMBOL, ENTREZID and GENENAME annotation to our results by completing the code below.
+
+```{r}
+library("AnnotationDbi")
+library("org.Hs.eg.db")
+
+columns(org.Hs.eg.db)
+
+res$symbol = mapIds(org.Hs.eg.db,
+                    keys=rownames(res), 
+                    keytype="ENSEMBL",
+                    column="SYMBOL",
+                    multiVals="first")
+
+res$entrez = mapIds(org.Hs.eg.db,
+                    keys=rownames(res),
+                    keytype="ENSEMBL",
+                    column="ENTREZID",
+                    multiVals="first")
+
+res$name =   mapIds(org.Hs.eg.db,
+                    keys=row.names(res),
+                    keytype="ENSEMBL",
+                    column="GENENAME",
+                    multiVals="first")
+
+head(res, 10)
+```
+
+> Q. Finally for this section let's reorder these results by adjusted p-value and save them to a CSV file in your current project directory.
+
+```{r}
+res = res[order(res$pvalue),]
+write.csv(res, file ="deseq_results.csv")
+```
+
+## Pathway Analysis
+
+```{r}
+# Run in your R console (i.e. not your Rmarkdown doc!)
+BiocManager::install( c("pathview", "gage", "gageData") )
+
+# For old versions of R only (R < 3.5.0)!
+#source("http://bioconductor.org/biocLite.R")
+#biocLite( c("pathview", "gage", "gageData") )
+```
+
+```{r}
+library(pathview)
+library(gage)
+library(gageData)
+
+data(kegg.sets.hs)
+data(sigmet.idx.hs)
+
+# Focus on signaling and metabolic pathways only
+kegg.sets.hs = kegg.sets.hs[sigmet.idx.hs]
+
+# Examine the first 3 pathways
+head(kegg.sets.hs, 3)
+```
+
+```{r}
+foldchanges = res$log2FoldChange
+names(foldchanges) = res$entrez
+head(foldchanges)
+```
+
+```{r}
+# Get the results
+keggres = gage(foldchanges, gsets=kegg.sets.hs)
+```
+
+```{r}
+attributes(keggres)
+
+# Look at the first few down (less) pathways
+head(keggres$less)
+```
+
+```{r}
+pathview(gene.data=foldchanges, pathway.id="hsa04110")
+```
+
+![](hsa04110.pathview.png)
+
+```{r}
+## Focus on top 5 upregulated pathways here for demo purposes only
+keggrespathways <- rownames(keggres$greater)[1:5]
+
+# Extract the 8 character long IDs part of each string
+keggresids = substr(keggrespathways, start=1, stop=8)
+keggresids
+```
+
+> Q. Can you do the same procedure as above to plot the pathview figures for the top 5 down-regulated pathways?
+
+```{r}
+pathview(gene.data=foldchanges, pathway.id="hsa04640")
+
+pathview(gene.data=foldchanges, pathway.id="hsa04630")
+
+pathview(gene.data=foldchanges, pathway.id="hsa00140")
+
+pathview(gene.data=foldchanges, pathway.id="hsa04142")
+
+pathview(gene.data=foldchanges, pathway.id="hsa04330")
+```
+![](hsa04640.pathview.png)
+![](hsa04630.pathview.png)
+![](hsa00140.pathview.png)
+![](hsa04142.pathview.png)
+
+![](hsa04330.pathview.png)
+
+## Gene Ontology
+
+```{r}
+data(go.sets.hs)
+data(go.subs.hs)
+
+# Focus on Biological Process subset of GO
+gobpsets = go.sets.hs[go.subs.hs$BP]
+
+gobpres = gage(foldchanges, gsets=gobpsets)
+
+lapply(gobpres, head)
+```
+
+## Reactome Analysis
+
+```{r}
+sig_genes <- res[res$padj <= 0.05 & !is.na(res$padj), "symbol"]
+print(paste("Total number of significant genes:", length(sig_genes)))
+```
+
+```{r}
+write.table(sig_genes, file="significant_genes.txt", row.names=FALSE, col.names=FALSE, quote=FALSE)
+```
+
+> Q. What pathway has the most significant “Entities p-value”? Do the most significant pathways listed match your previous KEGG results? What factors could cause differences between the two methods?
+
+Most significant "Entities p-value" is first pathway: **"Cell Cycle, Mitotic"** since it sorts them from smallest p-value (most significant) to the largest. They are not an exact match between Reactome and KEGG because Kegg explicitly lists pathways such as DNA replication as a top result but Reactome doesn't. Factors causing differences is KEGG is a more broad general way of looking at the pathways. Reactome on the other hand, implements different databases to bring a more specific and holistic view of the pathways.
+
+```{r}
+sessionInfo()
+```
+
+
+
