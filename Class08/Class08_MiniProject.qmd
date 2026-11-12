@@ -1,0 +1,243 @@
+---
+title: "Class 8: Mini Project"
+author: "Tyler Takeshima TSN: 200166223"
+toc: true
+format: pdf
+---
+
+## Exploratory Data Analysis
+
+```{r}
+fna.data <- "WisconsinCancer.csv"
+
+wisc.df <- read.csv(fna.data, row.names = 1)
+```
+
+```{r}
+head(wisc.df, 4)
+
+#Can use -1 here to remove first column
+wisc.data <- wisc.df[,-1]
+
+diagnosis <- wisc.df$diagnosis
+```
+
+> Q1. How many observations are in this dataset?
+
+There are 569 observations, the observations are defined by the number of rows in the data set. Note: columns are diff categories
+```{r}
+dim(wisc.data)
+nrow(wisc.data)
+
+```
+
+> Q2. How many of the observations have a malignant diagnosis?
+
+There are 212 observations that have the malignant "M" diagnosis.
+```{r}
+table(diagnosis == "M")
+```
+
+> Q3. How many variables/features in the data are suffixed with _mean?
+
+There are 10 different variables/features in this data suffixed with **"_mean"**.
+```{r}
+length(grep("_mean", colnames(wisc.data)))
+```
+
+## Principal Component Analysis
+
+```{r}
+#Check column means and standard deviations
+colMeans(wisc.data)
+
+apply(wisc.data,2,sd)
+```
+```{r}
+wisc.pr <- prcomp(wisc.data, scale = TRUE)
+summary(wisc.pr)
+```
+
+> Q4. From your results, what proportion of the original variance is captured by the first principal component (PC1)?
+
+Using the table above, the original variance is 0.4427 or 44.27% under "Proportion of Variance" in PC1.
+
+> Q5. How many principal components (PCs) are required to describe at least 70% of the original variance in the data?
+
+When looking within "Cumulative Proportion", the threshold of at least 70% is reached at PC3 where it is approx 72.63%. Note: PC2 before is 63.24% so it is under
+
+> Q6. How many principal components (PCs) are required to describe at least 90% of the original variance in the data?
+
+When looking at the "Cumulative Proportion" again, we can see that it reaches approx 91.01% at PC7. Note: PC6 is 88.75% so it is under
+
+### Interpreting PCA Results
+
+```{r}
+biplot(wisc.pr)
+```
+
+> Q7. What stands out to you about this plot? Is it easy or difficult to understand? Why?
+
+What stands out to me about this plot is the cluttered mess of different row names and numbers all in the center. It is difficult to understand because it is all squished in the middle and overlapping the text on top of each other. The dataset used is too large for this biplot to be effective which is why this is happening. 
+
+```{r}
+#Scatter plot observations by components 1 and 2
+library(ggplot2)
+
+ggplot(wisc.pr$x) +
+  aes(PC1, PC2, col = diagnosis) +
+  geom_point()
+```
+
+> Q8. Generate a similar plot for principal components 1 and 3. What do you notice about these plots?
+
+For Q8, see plot below generated. I notice that these plots for PC1, PC2 vs PC1, PC3 have differing points for diagnosis. The PC3 captures a lower variance which ends up resulting in more overlap between the groups. The PC2 is more effective in separating between the samples. 
+
+```{r}
+#Repeat for components 1 and 3
+ggplot(wisc.pr$x) +
+  aes(PC1, PC3, col = diagnosis) + 
+  geom_point()
+```
+
+### Variance
+
+```{r}
+pr.var <- wisc.pr$sdev^2
+head(pr.var)
+```
+
+```{r}
+#Variance explained by each principal component: pve
+#Note: variance divided by total variance of all
+pve <- pr.var / sum(pr.var)
+
+#Plot variance explained for each principal component
+plot(c(1, pve), xlab = "Principal Component",
+     ylab = "Proportion of Variance Explained",
+     ylim = c(0, 1), type = "o")
+
+```
+
+```{r}
+#Alternative scree plot of the same data, note data driven y-axis
+barplot(pve, ylab = "Percent of Variance Explained",
+        names.arg = paste0("PC",1:length(pve)), las = 2, axes = FALSE)
+axis(2, at = pve, labels = round(pve, 2)* 100)
+```
+```{r}
+## ggplot based graph
+#install.packages("factoextra")
+library(factoextra)
+fviz_eig(wisc.pr, addlabels = TRUE)
+```
+
+> Q9. For the first principal component, what is the component of the loading vector (i.e. wisc.pr$rotation[,1]) for the feature concava.points_mean? This tells us how much this original feature contributes to the first PC. Are there any features with larger contributions than this one?
+
+See code below for Q9. Our value for concave.points_mean is -0.2608538. When sorting through the code, it appears at the top of the list meaning there are no features with larger contributions to this one for PC1. 
+```{r}
+#For PC1, value of "concave.points_mean"
+wisc.pr$rotation["concave.points_mean", "PC1"]
+##Sort large to small
+#Note: Use abs due to "largest" contribution
+sort(abs(wisc.pr$rotation[,"PC1"]), decreasing = TRUE)
+```
+
+## Hierarchical Clustering
+
+```{r}
+#Scale the wisc.data data using the "scale()" function
+data.scaled <- scale(wisc.data)
+
+#Calculate distances between pairs of observations
+data.dist <- dist(data.scaled)
+
+#Create hierarchical clustering
+wisc.hclust <- hclust(data.dist, method = "complete")
+```
+
+> Q10. Using the plot() and abline() functions, what is the height at which the clustering model has 4 clusters?
+
+The height at which clustering model has 4 clusters is around 20 for the height. The h = 20 draws the line horizontally across which splits the data into 4 clusters when opening the fullscreen dendrogram. 
+```{r}
+plot(wisc.hclust)
+abline(h = 20, col = "red", lty = 2)
+```
+
+```{r}
+wisc.hclust.clusters <- cutree(wisc.hclust, k = 4)
+
+table(wisc.hclust.clusters, diagnosis)
+```
+
+### Using Different Methods
+
+```{r}
+hc.single <- hclust(data.dist, method = "single")
+plot(hc.single, main = "Single")
+hc.complete <- hclust(data.dist, method = "complete")
+plot(hc.complete, main = "Complete")
+hc.average <- hclust(data.dist, method = "average")
+plot(hc.average, main = "Average")
+hc.wardD2 <- hclust(data.dist, method = "ward.D2")
+plot(hc.wardD2, main = "Ward.D2")
+```
+
+
+> Q12. Which method gives your favorite results for the same data.dist dataset? Explain your reasoning. 
+
+My favorite results for the same data.dist dataset is using the ward.D2 method. The ward.D2 method appears cleaner and more organized/symmetrical. Additionally, it is able to split it better between 2 categories. 
+
+## Combining Methods
+
+```{r}
+wisc.pr.hclust <- hclust(dist(wisc.pr$x[, 1:7]), method = "ward.D2") 
+grps <- cutree(wisc.pr.hclust, k = 2)
+table(grps)
+table(grps, diagnosis)
+```
+```{r}
+ggplot(wisc.pr$x) +
+  aes(PC1, PC2) +
+  geom_point(col = grps)
+```
+
+```{r}
+wisc.pr.hclust.clusters <- cutree(wisc.pr.hclust, k = 2)
+```
+
+> Q13. How well does the newly created hclust model with two clusters separate out the two "M" and "B" diagnoses?
+
+This separates the diagnosis very well since the malignant cluster catches 188/212 and the benign catches 329/357. The created hclust model is able to confidently filter through the data and assign the tumors accordingly similar to real world clinical diagnosis. 
+```{r}
+table(wisc.pr.hclust.clusters, diagnosis)
+```
+> Q14. How well do the hierarchical clustering models you created in the previous sections (i.e. without first doing PCA) do in terms of separating the diagnoses? Again, use the table() function to compare the output of each model (wisc.hclust.clusters and wisc.pr.hclust.clusters) with the vector containing the actual diagnoses.  
+
+This method without PCA is more messy and categorizes into 4 clusters. It is also scattered and more susceptible to background noise. For example, it has more misses like 40 in cluster 3 instead of the 24 from with PCA. 
+
+```{r}
+table(wisc.hclust.clusters, diagnosis)
+```
+
+## Prediction
+
+```{r}
+#url <- "new_samples.csv"
+url <- "https://tinyurl.com/new-samples-CSV"
+new <- read.csv("new_samples.csv")
+npc <- predict(wisc.pr, newdata = new)
+npc
+```
+```{r}
+plot(wisc.pr$x[,1:2], col = grps)
+points(npc[,1], npc[,2], col = "blue", pch = 16, cex = 3)
+text(npc[,1], npc[,2], c(1,2), col = "white")
+```
+
+> Q16. Which of these new patients should we prioritize for follow up based on your results?
+
+We should prioritize Patient 2 for follow-up because it is more towards the high-density malignant cluster in black. These are more scattered because the cancer samples have high irregularities in their cells due to tumors leading to variance. The Patient 1 is more towards the red cluster on the right (positive PC1 scores) meaning they have more uniform and normal cell features.
+
+
+
