@@ -1,0 +1,78 @@
+---
+title: "HW Class06 (R Functions)"
+subtitle: "Tyler Takeshima (TSN: 200166223)"
+output:
+  pdf_document: default
+  html_document: default
+date: "2026-10-16"
+---
+
+# Can you improve this analysis code?
+
+```{r}
+#Original Code:
+library(bio3d)
+s1 <- read.pdb("4AKE") # kinase with drug
+s2 <- read.pdb("1AKE") # kinase no drug
+s3 <- read.pdb("1E4Y") # kinase with drug
+
+s1.chainA <- trim.pdb(s1, chain="A", elety="CA")
+s2.chainA <- trim.pdb(s2, chain="A", elety="CA")
+s3.chainA <- trim.pdb(s3, chain="A", elety="CA")
+
+s1.b <- s1.chainA$atom$b
+s2.b <- s2.chainA$atom$b
+s3.b <- s3.chainA$atom$b
+
+plotb3(s1.b, sse=s1.chainA, typ="l", ylab="Bfactor")
+plotb3(s2.b, sse=s2.chainA, typ="l", ylab="Bfactor")
+plotb3(s3.b, sse=s3.chainA, typ="l", ylab="Bfactor")
+
+identical(s1.b, s3.b)
+```
+
+
+## Function Solved:
+
+>Documentation:
+
+Inputs: 
+There are 3 inputs that are used in the function. The first is **"id"** which is a4 letter PDB id code. The second is **"chain"** which is the chain id (set to "A"). The third is **"elety"** which is the element type (set to "CA" for alpha-carbon)
+
+
+How it works: 
+Note - shown through the comments throughout the code below
+You use it by calling the function plot_b() and inputting the respective PDB code inside.
+
+```{r}
+
+plot_b <- function(id, chain = "A", elety = "CA"){
+  #Load "bio3d" package
+  library(bio3d)
+  #Reads the PDB file, downloads the corresponding file from the provided id
+  pdb <- read.pdb(id)
+  #Filters everything to the elety: "CA" and chain: "A"
+  trim <- trim.pdb(pdb, chain = chain, elety = elety)
+  #Extracts the column "b" of B factors from the $atom data frame
+  b_factor <- trim$atom$b
+  #Plots the results
+  plotb3(b_factor, sse = trim, typ = "l", ylab = "Bfactor")
+}
+```
+
+Output of the function is below:
+(It is the same as the original result)
+
+```{r}
+#Testing
+plot_b("4AKE")
+plot_b("1AKE")
+plot_b("1E4Y")
+```
+
+
+
+
+
+
+

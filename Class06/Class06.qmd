@@ -1,0 +1,251 @@
+---
+title: "Class 6: R Functions"
+author: "Tyler Takeshima (200166223)"
+format: pdf
+toc: true
+---
+
+## Background
+
+All functions in R have at least 3 things:
+
+- a *name* (we pick that and use it to call the function)
+- input *arguments* (one or more comma separated inputs that go inside the brackets when we call the function)
+- the *body* (the lines of R code that do the work of the function)
+
+## A first function
+
+Here we will create a function `add()` to add numbers together.
+
+> **Q1a.** Your first version of the function should add two input numbers together. For example, add(4, 7) should return 11. [1 pt]
+
+```{r}
+add <- function(x, y = 0) {
+  x + y
+}
+```
+
+Let's test our new function
+
+```{r}
+add(4, 7)
+```
+
+How about:
+```{r}
+add(10)
+```
+
+```{r}
+add <- function(x, y = 0, z = 0) {
+  x + y + z
+}
+```
+
+
+```{r}
+add(10, 10, 100)
+```
+> **Q1b.** For you second version, adapt your first function so it can take a single input vector or two inputs as before. For example, add(4, 7) and add( c(4,7,10) ). [1 pt]
+
+```{r}
+add <- function(x, y = 0){
+  sum(x,y)
+}
+```
+
+```{r}
+add(c(4, 7, 10))
+```
+```{r}
+add(4, 7)
+```
+> **Q1c.** Finally, on your own (outside of class) create a third version of your function that can add any number of inputs that the user provides. For example, add(1, 2, 3,-4) should return 2. Hint: explore the ... (dots) argument or the base R function sum(). [2 pts]
+
+```{r}
+add <- function(...){
+  sum(...)
+}
+```
+
+```{r}
+add(1, 2, 3, -4)
+```
+
+
+## A generate DNA function
+
+Write a function `generate_dna()` that returns a random DNA sequence of a length specified by the user. 
+
+> **Q2a.** Your first version should return a multi-element vector of single character nucleotides. For example generate_dna(6) might return "A", "T", "T", "G", "A", "C". [1 pt]
+
+Useful base R functions that you may (or may not) find useful for this lab include: `sample()`, `paste()`, `paste0()`, `if()`, `for()`, `sapply()`, `nchar()`, and `cat()`.
+
+The `sample()` function looks useful. There are two **required arguments** (i.e. inputs I must give that don't have a default value)
+
+```{r}
+sample(x = 1:10, size = 4)
+```
+
+We can use this with "A", "C", "G", and "T" as input x to make random nucleotide sequences
+
+```{r}
+sample(x = c("A", "C", "G", "T"), size = 5, replace = TRUE)
+```
+
+Cool! We have a working snipet of code that does something useful! this can serve as the "body" of our first `generate_dna()` function.
+
+```{r}
+generate_dna <- function(n){
+  sample(x = c("A", "C", "G", "T"), size = n, replace = TRUE)
+}
+```
+
+```{r}
+generate_dna(6)
+```
+
+> **Q2b.** Your second version should optionally be able to return either a multi-element vector of single character nucleotides (as before) or a single character string (not a vector of single letters but a singe vector of multiple letters). For example "AAGGCTG". [1 pt]
+
+The functions `paste()`, `paste0()`, and `if()` might be useful here...
+
+```{r}
+paste( c("A", "C", "A"), collapse = "")
+```
+
+```{r}
+flag <- TRUE
+if(flag){
+  cat("Look at me! We are in here")
+} else{
+  cat("NOoooooo!")
+}
+```
+
+
+```{r}
+generate_dna <- function(n, choice = FALSE){
+  #Generate if statement to give person an option/choice
+  if(choice == TRUE){
+    #Multi-element nucleotide vector
+    sample(x = c("A", "C", "G", "T"), size = n, replace = TRUE)
+  } else if (choice == FALSE){
+    s <- sample(x = c("A", "C", "G", "T"), size = n, replace = TRUE)
+    #Make a single element vector
+    paste(s, collapse = "")
+  }
+  #Just incase the code doesn't run
+  else{
+    print("Try (6, TRUE)")
+  }
+}
+
+```
+
+```{r}
+generate_dna(6, choice = TRUE)
+generate_dna(6, choice = FALSE)
+```
+
+> **Q2c.** Finally, create a final version of your function that prints out a FASTA format sequence with an id line indicating the sequence length. For example:
+
+```{r}
+generate_dna <- function(n){
+  s <- sample(x = c("A", "C", "G", "T"), size = n, replace = TRUE)
+  #Use cat to return a FASTA format sequence
+  cat(">len", sep = "", n, "\n", paste(s, collapse = ""))
+}
+```
+
+```{r}
+generate_dna(6)
+```
+```{r}
+generate_dna <- function(n, fasta = FALSE){
+  #Initialize at start
+  s <- sample(x = c("A", "C", "G", "T"), size = n, replace = TRUE)
+  #Generate if statement
+  if(fasta == TRUE){
+    #Generate FASTA format sequence
+    cat(">len", sep = "", n, "\n", paste(s, collapse = ""), "\n")
+  } else if (fasta == FALSE){
+    #Generate regular combined string format
+    paste(s, collapse = "")
+  }
+  #Just incase the code doesn't run
+  else{
+    print("Try (6, TRUE)")
+  }
+}
+```
+
+```{r}
+generate_dna(9, TRUE)
+generate_dna(6, FALSE)
+```
+
+## Write generate_protein() function
+
+> **Q3** Use the single-letter code for all 20 standard amino acids and no other letters (see earlier list at the beginning of this handout)and include clear comments that explain each step of your function. [2 pts]
+
+```{r}
+amino_acids <- c("A", "R", "N", "D", "C", "E", "Q", "G", "H", "I", "L", "K", "M", "F", "P", "S", "T", "W", "Y", "V")
+
+generate_protein <- function(n){
+  s <- sample(amino_acids, size = n, replace = TRUE)
+  paste(s, collapse = "")
+}
+```
+
+```{r}
+generate_protein(6)
+```
+
+## Generate random protein sequences
+
+> **Q4** Adapt and use your generate_protein() function to generate a series of random protein sequences ranging from 6 to 13 amino acids in length (one sequence per length). Take advantage of the base R function for() or sapply() so that you do not have to call generate_protein() eight times by hand.
+
+We can do this with a `for()` loop:
+
+```{r}
+for(n in 6:13){
+  #Generate protein sequence
+  seq <- generate_protein(n)
+  #Loop through 6 to 13 and paste the respective id #
+  cat(paste(">id.", sep = "", n, "\n"))
+  #Return the protein sequences length 6 to 13
+  cat(paste(seq, "\n"))
+}
+```
+
+## BLASTp search against nr - are your peptides "unique in nature"?
+
+> **Q5** In your quarto report create a fill in table along the lines of the following: [2pts]
+
+
+```{r}
+df <- data.frame(
+  Length = c(6, 7, 8, 9, 10, 11, 12, 13),
+  Best_Hit_Identity = c(100, 100, 100, 100, 88, 90, 75, 90),
+  Best_Hit_Coverage = c(100, 100, 88, 89, 90, 100, 100, 77),
+  Unique_Y.N = c("N", "N", "Y", "Y", "Y", "Y", "Y", "Y")
+) 
+df
+```
+> **Q5a.** At which sequence length do your randomly generated peptides start to look “unique in nature” (i.e. no 100% coverage + 100% identity hit)? [1pt]
+
+The sequence length of 8 is when my randomly generated peptides start to look unique in nature. This is because the coverage drops to around 88%. 
+
+> **Q5b.** Speculate why very short random peptides are almost always found in nr, while longer ones typically are not. Your answer should refer both to the size of the sequence space (20𝐿fora peptide of length𝐿) and to the size of the known protein universe. [1pt]
+
+Short peptides have very few possible combinations of 20^L so most of them have appeared in the known protein universe. However, as the peptide gets longer this potential combination number grows at an exponential rate. Due to its such large number of variations, the chance of a long peptide matching to an existing protein is smaller. 
+
+## Connecting your findings to immunology
+
+> **Q6** In 3–6 sentences total and using your Q5 data and the reasoning from Q5b, what do you think this minimum length is and why might it be a bad design choice for the immune system to present very short peptides? [3 pt]
+
+I believe the minimum length is approximately 8-9 amino acids long based on my previous findings from Q5. The findings from Q5 show that very short random peptides matches sequences in the database whereas the longer ones were shown to be unique findings with no 100% coverage + 100% identity hits. This is important regarding MHC because very short peptides will likely match proteins from other organisms including the body's own protein. This would be a bad mechanism because it would make it harder for the immune system to distinguish their own cells vs foreign ones. The longer peptides there are, the immune system will then be able to recognize foreign proteins reliably. 
+
+
+
+
