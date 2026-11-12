@@ -1,0 +1,45 @@
+---
+title: "Class 12: Transcriptomics & Analysis of RNA-Seq"
+author: "Tyler Takeshima TSN: 200166223"
+format: html
+---
+
+```{r}
+library(BiocManager)
+library(DESeq2)
+```
+
+```{r}
+list.files()
+```
+
+
+```{r}
+counts <- read.csv("airway_scaledcounts.csv", row.names = 1)
+metadata <- read.csv("airway_metadata.csv")
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
