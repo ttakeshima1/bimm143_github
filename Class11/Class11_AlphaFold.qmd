@@ -1,0 +1,281 @@
+---
+title: "Class 11: AlphaFold Analysis"
+author: "Tyler Takeshima TSN: 200166223"
+format: pdf
+toc: true
+---
+
+## Background
+
+We ran 3 AlphaFold2 predictions,
+
+- HIV-PR_monomer
+- HIV-PR_dimer
+- My find-a-gene protein sequence
+
+Here we analyze the resulting modles and make some diagnostic plots that inform on model reliability
+
+## 1. HIV-PR Monomer
+
+```{r}
+list.files(path = "HIV_monomer_94b5b",
+           full.names = F,
+           pattern = ".pdb")
+```
+
+
+```{r}
+pdb_files <- list.files(path = "HIV_monomer_94b5b",
+                        full.names = T,
+                        pattern = ".pdb")
+```
+
+```{r}
+library(bio3d)
+
+pdbs <- pdbaln(pdb_files, fit = TRUE, exefile = "msa")
+pdbs
+```
+
+Calculate the RMSD of all models to each other
+
+```{r}
+rd <- rmsd(pdbs, fit=T)
+
+range(rd)
+```
+
+
+```{r}
+library(pheatmap)
+
+colnames(rd) <- paste0("m",1:5)
+rownames(rd) <- paste0("m",1:5)
+pheatmap(rd)
+```
+
+Calculate RMSF - how far apart each amino-acid is from
+
+```{r}
+rf <- rmsf(pdbs$xyz)
+
+plot.bio3d(rf)
+```
+
+### Residue conservation
+
+Read the AF MSA
+
+```{r}
+aln_file <- list.files(path="HIV_monomer_94b5b",
+                       pattern=".a3m$",
+                        full.names = TRUE)
+aln_file
+
+aln <- read.fasta(aln_file[1], to.upper = TRUE)
+```
+
+We can score residue conservation in the alignment with the conserv() function.
+```{r}
+sim <- conserv(aln)
+```
+
+Plot this conservation result
+```{r}
+plot(sim, type = "h")
+```
+
+```{r}
+con <- consensus(aln, cutoff = 0.9)
+con$seq
+```
+
+For a final visualization of these functionally important sites we can map this conservation score to the Occupancy column of a PDB file for viewing in molecular viewer programs such as Mol*, PyMol, VMD, chimera etc.
+
+```{r}
+m1.pdb <- read.pdb(pdb_files[1])
+occ <- vec2resno(sim[1:99], m1.pdb$atom$resno)
+write.pdb(m1.pdb, o=occ, file="m1_conserv.pdb")
+```
+
+
+## AF Scores (plDDT & PAE score plots)
+
+
+The pLDDT scores are stored in the PDB models "B-factor" col and in a seperate JSON format file in the results directory. We can use either:
+```{r}
+plotb3(pdbs$b[1,], typ = "l", lwd = 2)
+points(pdbs$b[2,], typ="l", col="red")
+points(pdbs$b[3,], typ="l", col="blue")
+points(pdbs$b[4,], typ="l", col="darkgreen")
+points(pdbs$b[5,], typ="l", col="orange")
+
+#plot(m1.pdb$atom$b[m1.pdb$calpha], typ = "h")
+```
+
+
+## 2. HIV-PR Dimer
+
+```{r}
+list.files(path = "HIV_dimer_23119",
+           full.names = F,
+           pattern = ".pdb")
+```
+
+```{r}
+pdb_files2 <- list.files(path = "HIV_dimer_23119",
+                        full.names = T,
+                        pattern = ".pdb")
+```
+
+```{r}
+library(bio3d)
+
+pdbs2 <- pdbaln(pdb_files2, fit = TRUE, exefile = "msa")
+pdbs2
+```
+
+### RMSD
+
+```{r}
+rd2 <- rmsd(pdbs2, fit=T)
+
+range(rd2)
+```
+
+```{r}
+library(pheatmap)
+
+colnames(rd2) <- paste0("m",1:5)
+rownames(rd2) <- paste0("m",1:5)
+pheatmap(rd2)
+```
+
+### RMSF
+
+```{r}
+rf2 <- rmsf(pdbs2$xyz)
+
+plot.bio3d(rf2)
+```
+
+### Residue Conservation
+
+Read the AF MSA
+```{r}
+aln_file2 <- list.files(path="HIV_dimer_23119",
+                       pattern=".a3m$",
+                        full.names = TRUE)
+aln_file2
+
+aln2 <- read.fasta(aln_file2[1], to.upper = TRUE)
+```
+
+We can score residue conservation in the alignment with the conserv() function.
+```{r}
+sim2 <- conserv(aln2)
+```
+
+Plot this conservation result
+```{r}
+plot(sim2, type = "h")
+```
+
+### AF scores (pLDDT & PAE score plots)
+
+The pLDDT scores are stored in the PDB models "B-factor" col and in a seperate JSON format file in the results directory. We can use either:
+```{r}
+plotb3(pdbs2$b[1,], typ = "l", lwd = 2)
+points(pdbs2$b[2,], typ="l", col="red")
+points(pdbs2$b[3,], typ="l", col="blue")
+points(pdbs2$b[4,], typ="l", col="darkgreen")
+points(pdbs2$b[5,], typ="l", col="orange")
+
+#plot(m1.pdb$atom$b[m1.pdb$calpha], typ = "h")
+```
+
+## 3. My Find-A-Gene Sequence
+
+### Read file
+
+```{r}
+list.files(path = "Gene_Project_50ab9_0",
+           full.names = F,
+           pattern = ".pdb")
+```
+
+
+```{r}
+pdb_files3 <- list.files(path = "Gene_Project_50ab9_0",
+                        full.names = T,
+                        pattern = ".pdb")
+```
+
+```{r}
+library(bio3d)
+
+pdbs3 <- pdbaln(pdb_files3, fit = TRUE, exefile = "msa")
+pdbs3
+```
+
+### RMSD
+
+```{r}
+rd3 <- rmsd(pdbs3, fit=T)
+
+range(rd3)
+```
+```{r}
+library(pheatmap)
+
+colnames(rd3) <- paste0("m",1:5)
+rownames(rd3) <- paste0("m",1:5)
+pheatmap(rd3)
+```
+
+### RMSF
+
+```{r}
+rf3 <- rmsf(pdbs3$xyz)
+
+plot.bio3d(rf3)
+```
+
+
+### Conservation
+
+Read the AF MSA
+
+```{r}
+aln_file3 <- list.files(path="Gene_Project_50ab9_0",
+                       pattern=".a3m$",
+                        full.names = TRUE)
+aln_file3
+
+aln3 <- read.fasta(aln_file3[1], to.upper = TRUE)
+```
+
+We can score residue conservation in the alignment with the conserv() function.
+```{r}
+sim3 <- conserv(aln3)
+```
+
+Plot this conservation result
+```{r}
+plot(sim3, type = "h")
+```
+
+```{r}
+con3 <- consensus(aln3, cutoff = 0.9)
+con3$seq
+```
+
+### AF_Scores
+
+```{r}
+plotb3(pdbs3$b[1,], typ = "l", lwd = 2)
+points(pdbs3$b[2,], typ="l", col="red")
+points(pdbs3$b[3,], typ="l", col="blue")
+points(pdbs3$b[4,], typ="l", col="darkgreen")
+points(pdbs3$b[5,], typ="l", col="orange")
+```
